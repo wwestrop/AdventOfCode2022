@@ -1,4 +1,5 @@
-﻿open System.IO
+﻿module mod_day1
+open System.IO
 
 let mutable input = "1000
 2000
