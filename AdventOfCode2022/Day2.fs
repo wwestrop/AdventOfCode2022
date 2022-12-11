@@ -58,12 +58,11 @@ let day2 (input: string) =
 
         shapeScore + outcomeScore
 
-    let mutable acc = 0
-    for r in roundsPlayed do
-        acc <- acc + score r
-
-    acc   // return value
+    roundsPlayed |> Seq.map score |> Seq.sum
 
 
 
 printfn "%i" (day2 input)
+
+
+// 13809
