@@ -13,7 +13,8 @@ let mutable input = "1000
 8000
 9000
 
-10000"
+10000
+"
 
 
 input <- File.ReadAllText("input.txt");
@@ -32,7 +33,8 @@ let day1 (input: string) =          // TODO parens enable type hint. Does it als
         }
 
     let elvesCalories = getElves
-    Seq.max(elvesCalories)
+    let topElvesCalories = Seq.sortDescending elvesCalories |> Seq.take 3
+    Seq.sum topElvesCalories
 
 
 
