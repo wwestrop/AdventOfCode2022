@@ -40,4 +40,21 @@ let day4 (input: string) =
 
 
 
+let day4part2 (input: string) =
+
+    let getRange (r: string) =
+        let rangeStartEnd = r.Split("-").Select(fun x -> int x)
+        Set [rangeStartEnd.ElementAt(0)..rangeStartEnd.ElementAt(1)]
+
+    let lines =
+        input.Replace(" ", "").Split("\r\n")
+        |> Seq.map (fun x -> x.Split(","))
+        |> Seq.map (fun x -> x[0], x[1])
+        |> Seq.map (fun (x, y) -> getRange x, getRange y)
+        |> Seq.filter (fun (x, y) -> (Set.intersect x y).Any())     // This is a bit C#y, I'm sure there's a more idiomatic way to do this?????
+
+    lines.Count()
+
+
 printfn "%i" (day4 input)
+printfn "%i" (day4part2 input)
