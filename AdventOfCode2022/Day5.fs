@@ -67,4 +67,27 @@ let day5 (input: string) =
 
     topsOfStacks stacks
 
+
+let day5part2 (input: string) =
+    let input = input.Split("\r\n", StringSplitOptions.RemoveEmptyEntries)
+    let stackGraphic = input.TakeWhile(fun x -> not (isColumnNumbers x))
+    let movesList = input.SkipWhile(fun x -> crateMatcher.IsMatch(x) || isColumnNumbers x)
+    
+    let stackRows = stackGraphic |> Seq.map getStackRow |> Seq.rev
+    let stacks = initialiseStacks stackRows
+
+    let instrs = movesList |> Seq.map parseInstruction
+    for n, from, ``to`` in instrs do
+        let fromStack = stacks[from - 1]
+        let toStack = stacks[``to`` - 1]
+        let intermediateStack = Stack<char>()
+        for _ in [1..n] do
+            intermediateStack.Push(fromStack.Pop())
+        for _ in [1..n] do
+            toStack.Push(intermediateStack.Pop())
+
+    topsOfStacks stacks
+
+
 printfn "%s" (day5 input)
+printfn "%s" (day5part2 input)
