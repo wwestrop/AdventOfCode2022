@@ -12,11 +12,12 @@ let mutable input = "30373
 input <- File.ReadAllText("input.txt");
 
 
+let hilite (x: int) (y: int) (i: byte) = i = 0uy
+let tf (i: byte) = if i = 0uy then "X" else "-"
+
+
 
 let day8 (input: string) =
-
-    let hilite (x: int) (y: int) (i: byte) = i = 0uy
-    let tf (i: byte) = if i = 0uy then "X" else "-"
 
     let arr: int[,] = Grid.ParseNumberGrid input
     let (w, h) = arr.GetLength(0), arr.GetLength(1)
@@ -77,5 +78,63 @@ let day8 (input: string) =
     visibleTrees
 
 
+let day8part2 (input: string) =
+
+    let arr: int[,] = Grid.ParseNumberGrid input
+    let (w, h) = arr.GetLength(0), arr.GetLength(1)
+    let scenicScores = Array2D.create w h 0u
+
+    let getTreeSequence (starting: int * int) xoffset yoffset =
+        seq {
+            let mutable x, y = starting
+            x <- x + xoffset
+            y <- y + yoffset
+
+            while x >= 0 && x <= w-1 && y >= 0 && y <= h-1 do
+                yield arr[x, y]
+                x <- x + xoffset
+                y <- y + yoffset
+        }
+
+    let hackToCaptureTheLastElement p =
+        let mutable doOneMore = true
+
+        fun value ->
+            let o = p value
+            match doOneMore with
+            | false -> false
+            | true when doOneMore && o -> true
+            | _ -> doOneMore <- false; true
+
+    let north = (0, -1)
+    let south = (0, 1)
+    let east = (1, 0)
+    let west = (-1, 0)
+
+    let getScoreInDirection (col, row) (xoffset, yoffset) =
+        let t = arr[col, row]
+
+        getTreeSequence (col, row) xoffset yoffset
+        |> Seq.takeWhile (hackToCaptureTheLastElement (fun x -> x < t))
+        |> Seq.length
+        |> uint
+
+    let getScore col row =
+        getScoreInDirection (col, row) north
+        * getScoreInDirection (col, row) south
+        * getScoreInDirection (col, row) east
+        * getScoreInDirection (col, row) west
+
+    let mutable highestScore = 0u
+    for row in 0..h-1 do
+        for col in 0..w-1 do
+            let s = getScore col row
+            scenicScores[col, row] <- s
+            if s > highestScore then highestScore <- s
+
+    highestScore
+
+
 
 printfn "%i" (day8 input)
+printfn "%i" (day8part2 input)
