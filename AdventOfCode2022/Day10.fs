@@ -1,6 +1,7 @@
-﻿module mod_day9
+﻿module mod_day10
 open System.IO
 open System
+open Helpers
 
 let mutable input = "addx 15
 addx -11
@@ -153,7 +154,7 @@ noop"
 input <- File.ReadAllText("input.txt");
 
 
-let day9 (input: string) =
+let day10 (input: string) =
 
     let mutable valuesAtEndOfCycle: int list = [1]
 
@@ -187,4 +188,46 @@ let day9 (input: string) =
     s
 
 
-printfn "%i" (day9 input)
+
+let day10part2 (input: string) =
+
+    let mutable valuesAtEndOfCycle: int list = [1]
+
+    let handleNoop () =
+        valuesAtEndOfCycle <- valuesAtEndOfCycle.Head :: valuesAtEndOfCycle
+
+    let handleAddx operand =
+        let r = valuesAtEndOfCycle.Head + operand
+        valuesAtEndOfCycle <- valuesAtEndOfCycle.Head :: valuesAtEndOfCycle
+        valuesAtEndOfCycle <- r :: valuesAtEndOfCycle
+
+    let handleInstruction x =
+        let instruction::args = x
+        match instruction with
+        | "noop" -> handleNoop ()
+        | "addx" -> handleAddx (int args[0])
+
+
+    for line in input.Split("\r\n", StringSplitOptions.RemoveEmptyEntries) do
+        handleInstruction (Seq.toList <| line.Split(" "))
+
+    valuesAtEndOfCycle <- valuesAtEndOfCycle |> List.rev
+
+    let hilite (x: int) (y: int) (i: bool) = i
+    let tf (i: bool) = if i then "#" else "."
+    let screen: bool[,] = Array2D.create 40 6 false
+
+
+    let mutable cycle = 1
+    for y in [1..6] do
+        for x in [1..40] do
+            let p = valuesAtEndOfCycle[cycle]
+            if p = x-1 || p = x || p = x+1 then screen[x-1, y-1] <- true
+            cycle <- cycle + 1
+
+    Grid.PrintArray (screen, hilite, tf)
+
+
+
+printfn "%i" (day10 input)
+day10part2 input
