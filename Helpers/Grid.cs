@@ -1,4 +1,6 @@
-﻿namespace Helpers;
+﻿using System.Drawing;
+
+namespace Helpers;
 
 /// <summary>
 /// Copied from last year, mainly used for diagnostics
@@ -22,6 +24,33 @@ public static class Grid
             '8' => 8,
             '9' => 9,
         };
+
+    public static IEnumerable<Point> GetNeighbourCoordinates<T>(T[,] input, Point coordinate)
+    {
+        int width = input.GetLength(0);
+        int height = input.GetLength(1);
+
+        if (coordinate.Y != 0)
+        {
+            // north
+            yield return new Point(coordinate.X, coordinate.Y - 1);
+        }
+        if (coordinate.Y != height - 1)
+        {
+            // south
+            yield return new Point(coordinate.X, coordinate.Y + 1);
+        }
+        if (coordinate.X != 0)
+        {
+            // west
+            yield return new Point(coordinate.X - 1, coordinate.Y);
+        }
+        if (coordinate.X != width - 1)
+        {
+            // east
+            yield return new Point(coordinate.X + 1, coordinate.Y);
+        }
+    }
 }
 
 public static class Grid<T> where T : notnull
