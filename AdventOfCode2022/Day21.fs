@@ -27,18 +27,21 @@ input <- File.ReadAllText("input.txt");
 //type Monkey = { 
 //    name: string;
 //    canSolve: unit -> bool;         // TODO combine solve/canSolve into an option type
-//    solve: unit -> uint64;
+//    solve: unit -> int64;
 //    descendents: (string * string) option;
 //}
 
-type Monkey(name: string, canSolve: unit -> bool, solve: unit -> uint64, descendents: (string * string) option) =
+type Operator = Plus | Minus | Multiply | Divide
+
+type Monkey(name: string, canSolve: unit -> bool, solve: unit -> int64, operator: Operator option, descendents: (string * string) option) =
     member this.name = name
     member this.canSolve = canSolve
     member this.solve = solve
+    member this.operator = operator
     member this.descendents = descendents
 
 
-let mutable solved: IDictionary<string, uint64> = Dictionary<string, uint64>()
+let mutable solved: IDictionary<string, int64> = Dictionary<string, int64>()
 
 
 let parseMathOp x =
@@ -54,7 +57,7 @@ let parseMathOp x =
 
 let isConst x =
     let regex = Regex "^[0-9]+$"
-    if regex.IsMatch x then Some (uint64 x) else None
+    if regex.IsMatch x then Some (int64 x) else None
 
 let solve (op1, op, op2) =
     let op1 = solved[op1]
@@ -90,7 +93,16 @@ let parse (line: string) =
         | None -> None
         | Some (o1, _, o2) -> Some (o1, o2)
 
-    new Monkey(monkeyName, canSolve, solve, descendents)
+    let operator = 
+        match mathOp with
+        | None -> None
+        | Some (_, "+", _) -> Some Plus
+        | Some (_, "-", _) -> Some Minus
+        | Some (_, "*", _) -> Some Multiply
+        | Some (_, "/", _) -> Some Divide
+
+
+    new Monkey(monkeyName, canSolve, solve, operator, descendents)
 
 
 // TODO built in alternative to `dict` which is mutable? Or is this just not encouraged?
@@ -102,13 +114,7 @@ let mutdict (d: ('K * 'V) seq): IDictionary<'K, 'V> =
     result
 
 
-let day21 (input: string) =
-
-    let monkeys = 
-        input.Split("\r\n", StringSplitOptions.RemoveEmptyEntries)
-        |> Seq.map parse
-
-    let allMonkeys = dict (monkeys |> Seq.map (fun x -> x.name, x))
+let solveAllTerms (allMonkeys: IDictionary<string, Monkey>) =
 
     // TODO meaningful whitespace is extremely annoying to me.
     // TODO what's the idiomatic way of formatting this to make it clear?
@@ -127,8 +133,79 @@ let day21 (input: string) =
             if x.canSolve() then
                 solved[x.name] <- x.solve()
 
+    ()
+
+
+let day21 (input: string) =
+
+    let allMonkeys = 
+        input.Split("\r\n", StringSplitOptions.RemoveEmptyEntries)
+        |> Seq.map parse
+        |> Seq.map (fun x -> x.name, x)
+        |> dict
+
+    solveAllTerms allMonkeys
+
     allMonkeys["root"].solve()
+
+
+let rec findOperand (soughtOperand: string) (searchFrom: Monkey) (allMonkeys: IDictionary<string,Monkey>) =
+    if searchFrom.name = soughtOperand then
+        true
+    else
+        match searchFrom.descendents with
+        | None -> false
+        | Some (op1, op2) -> findOperand soughtOperand allMonkeys[op1] allMonkeys 
+                             || findOperand soughtOperand allMonkeys[op2] allMonkeys
+
+
+let rec goalSeek (searchFrom: Monkey) (soughtNode: string) (target: int64) (allMonkeys: IDictionary<string,Monkey>) =
+
+    let lhs, rhs = searchFrom.descendents.Value
+
+    let isSoughNodeLhs = findOperand soughtNode allMonkeys[lhs] allMonkeys
+    let knownOperand =
+        match isSoughNodeLhs with
+        | true -> allMonkeys[rhs].solve()
+        | false -> allMonkeys[lhs].solve()
+
+    let calculatedOtherOperandValue = 
+        match searchFrom.operator with
+        | Some Plus -> target - knownOperand
+        | Some Minus -> if isSoughNodeLhs then target + knownOperand else knownOperand - target     // TODO need to be careful about operator ordering here
+        | Some Multiply -> target / knownOperand
+        | Some Divide -> if isSoughNodeLhs then target * knownOperand else knownOperand / target
+        //| None -> 1L        // TODO what do I do here? am I avoiding leaf nodes altogether?
+
+    // only recurse if humn is not either of our descendents (if it is just return that value, we've found it)
+    if lhs = soughtNode || rhs = soughtNode then
+        calculatedOtherOperandValue
+    else
+        // recurse down
+        goalSeek allMonkeys[if isSoughNodeLhs then lhs else rhs] soughtNode calculatedOtherOperandValue allMonkeys
+
+let day21part2 (input: string) =
+
+    let allMonkeys = 
+        input.Split("\r\n", StringSplitOptions.RemoveEmptyEntries)
+        |> Seq.map parse
+        |> Seq.map (fun x -> x.name, x)
+        |> mutdict
+
+    solveAllTerms allMonkeys
+
+    let root = allMonkeys["root"]
+    let lhs, rhs = root.descendents.Value
+    let isLhs = findOperand "humn" allMonkeys[lhs] allMonkeys
+
+    let theValueWeAreTryingToMatch = allMonkeys[if isLhs then rhs else lhs].solve()
+        //match isLhs with
+        //| true -> allMonkeys[rhs].solve()
+        //| false -> allMonkeys[lhs].solve()
+
+    goalSeek allMonkeys[if isLhs then lhs else rhs] "humn" theValueWeAreTryingToMatch allMonkeys
 
 
 
 printfn "%i" (day21 input)
+printfn "%i" (day21part2 input)
